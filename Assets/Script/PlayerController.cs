@@ -4,7 +4,6 @@ using UnityEngine.InputSystem;
 public class PlayerController : MonoBehaviour
 {
     [SerializeField] private Animator animator;
-
     [SerializeField] private Transform cameraTransform;
 
     [Header("이동설정")]
@@ -13,9 +12,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float rotationSpeed = 10f;
 
     [Header("바닥설정")]
-
     [SerializeField] private float gravity = -20f;
-
 
     private CharacterController controller;
     private float verticalVelocity;
@@ -23,66 +20,63 @@ public class PlayerController : MonoBehaviour
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
-    }
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
+
+        // Animator 자동 할당 (없으면 자식 오브젝트까지 탐색)
+        if (animator == null)
+        {
+            animator = GetComponentInChildren<Animator>();
+        }
+
+        // CameraTransform 미할당 시 메인 카메라 자동 연결
+        if (cameraTransform == null && Camera.main != null)
+        {
+            cameraTransform = Camera.main.transform;
+        }
     }
 
-    // Update is called once per frame
     void Update()
     {
         Keyboard keyboard = Keyboard.current;
-        
-        if(keyboard == null)
-        {
-            return;
-        }
-
+        if (keyboard == null) return;
 
         Vector2 input = Vector2.zero;
 
-        if (keyboard.aKey.isPressed)
-            input.x -= 1f;
-
-        if (keyboard.dKey.isPressed)
-            input.x += 1f;
-
-        if (keyboard.sKey.isPressed)
-            input.y -= 1f;
-
-        if (keyboard.wKey.isPressed)
-            input.x += 1f;
+        if (keyboard.aKey.isPressed) input.x -= 1f;
+        if (keyboard.dKey.isPressed) input.x += 1f;
+        if (keyboard.sKey.isPressed) input.y -= 1f;
+        if (keyboard.wKey.isPressed) input.y += 1f; // 버그 수정: input.x -> input.y
 
         input = Vector2.ClampMagnitude(input, 1f);
 
-        Vector3 cameraForward = cameraTransform.forward;
-        Vector3 cameraRight = cameraTransform.right;
+        // 2. 카메라 방향 참조 (cameraTransform이 null일 경우 디폴트 정면 사용)
+        Vector3 cameraForward = cameraTransform != null ? cameraTransform.forward : Vector3.forward;
+        Vector3 cameraRight = cameraTransform != null ? cameraTransform.right : Vector3.right;
 
-        cameraForward.y = 0f;
-        cameraRight.y = 0f;
+        cameraForward.y = 0;
+        cameraRight.y = 0;
 
         cameraForward.Normalize();
         cameraRight.Normalize();
 
+        // 3. 카메라 기준 이동 방향
         Vector3 moveDirection = cameraForward * input.y + cameraRight * input.x;
         moveDirection = Vector3.ClampMagnitude(moveDirection, 1f);
 
-        bool isRunning =keyboard.leftShiftKey.isPressed;
+        // 4. Shift 달리기
+        bool isRunning = keyboard.leftShiftKey.isPressed;
         float currentSpeed = isRunning ? runSpeed : walkSpeed;
 
-        //5. 수평 이동
+        // 5. 수평 이동
         controller.Move(moveDirection * currentSpeed * Time.deltaTime);
 
-        //6. 이동 방향으로 회전
+        // 6. 이동 방향으로 회전
         if (moveDirection.sqrMagnitude > 0.001f)
         {
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime); 
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
 
-        //7. 기본 중력 설정
+        // 7. 중력 설정
         if (controller.isGrounded && verticalVelocity < 0f)
         {
             verticalVelocity = -2f;
@@ -94,13 +88,17 @@ public class PlayerController : MonoBehaviour
 
         controller.Move(Vector3.up * verticalVelocity * Time.deltaTime);
 
-        float animationSpeed = 0f;
-
-        if (moveDirection.sqrMagnitude > 0.001f)
+        // 8. 애니메이션 전달 (animator 예외 처리)
+        if (animator != null)
         {
-            animationSpeed = isRunning ? 1f : 0.5f;
-        }
+            float animationSpeed = 0f;
 
-        animator.SetFloat("speed", animationSpeed, 0.1f, Time.deltaTime);
+            if (moveDirection.sqrMagnitude > 0.001f)
+            {
+                animationSpeed = isRunning ? 1f : 0.5f;
+            }
+
+            animator.SetFloat("speed", animationSpeed, 0.1f, Time.deltaTime);
+        }
     }
 }
