@@ -1,6 +1,13 @@
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+public enum PlayerState
+{
+    Normal,
+    Pickup,
+
+}
 public class PlayerController : MonoBehaviour
 {
     [SerializeField] private Animator animator;
@@ -16,6 +23,8 @@ public class PlayerController : MonoBehaviour
 
     private CharacterController controller;
     private float verticalVelocity;
+
+    private PlayerState currentState = PlayerState.Normal;
 
     private void Awake()
     {
@@ -37,7 +46,19 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         Keyboard keyboard = Keyboard.current;
-        if (keyboard == null) return;
+
+        if (keyboard == null)
+        {
+            return;
+        }
+
+        //상태와 관계없이 중력은 계속 적용
+        ApplyGravity();
+
+        //Normal 상태가 아니면 이동 입력을 받지 않는다.
+        if (currentState != PlayerState.Normal) return;
+
+        HandleMovement(keyboard);
 
         Vector2 input = Vector2.zero;
 
@@ -76,15 +97,6 @@ public class PlayerController : MonoBehaviour
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
 
-        // 7. 중력 설정
-        if (controller.isGrounded && verticalVelocity < 0f)
-        {
-            verticalVelocity = -2f;
-        }
-        else
-        {
-            verticalVelocity += gravity * Time.deltaTime;
-        }
 
         controller.Move(Vector3.up * verticalVelocity * Time.deltaTime);
 
@@ -101,4 +113,54 @@ public class PlayerController : MonoBehaviour
             animator.SetFloat("speed", animationSpeed, 0.1f, Time.deltaTime);
         }
     }
+    private void ApplyGravity()
+    {
+        if (controller.isGrounded && verticalVelocity < 0f)
+        {
+            verticalVelocity = -2f;
+        }
+        else
+        {
+            verticalVelocity += gravity * Time.deltaTime;
+        }
+    }
+
+    private void HandleMovement(Keyboard keyboard)
+    {
+        Vector2 input = Vector2.zero;
+
+        if (keyboard.aKey.isPressed)
+            input.x -= 1f;
+        if (keyboard.dKey.isPressed)
+            input.x += 1f;
+        if (keyboard.sKey.isPressed)
+            input.y -= 1f;
+        if (keyboard.wKey.isPressed)
+            input.y += 1f;
+
+        input = Vector2.ClampMagnitude(input, 1f);
+
+        //2. 카메라 앞쪽과 오른쪽 방향
+        Vector3 cameraForward = cameraTransform.forward;
+        Vector3 cameraRight = cameraTransform.right;
+
+        //카메라 위아래 기울기는 이동에 사용 하지 않는다.
+        cameraForward.y = 0;
+        cameraRight.y = 0;
+    }
+
+    public void ChangeState(PlayerState newState)
+    {
+        currentState = newState;
+
+        if (currentState != PlayerState.Normal)
+        {
+            animator.SetFloat("speed", 0);
+        }
+
+        Debug.Log("현재 상태 : " + currentState);
+    }
+
+
 }
+
