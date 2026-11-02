@@ -6,6 +6,7 @@ public enum PlayerState
 {
     Normal,
     Pickup,
+    Inventory
 
 }
 public class PlayerController : MonoBehaviour
@@ -31,7 +32,7 @@ public class PlayerController : MonoBehaviour
         controller = GetComponent<CharacterController>();
 
         // Animator 자동 할당 (없으면 자식 오브젝트까지 탐색)
-        if (animator == null)
+        if (animator == null) 
         {
             animator = GetComponentInChildren<Animator>();
         }
@@ -161,6 +162,9 @@ public class PlayerController : MonoBehaviour
         Debug.Log("현재 상태 : " + currentState);
     }
 
-
+    public bool IsNormalState()
+    {
+        return currentState == PlayerState.Normal;
+    }
 }
 
