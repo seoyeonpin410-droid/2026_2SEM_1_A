@@ -18,10 +18,11 @@ public class PickupItem : MonoBehaviour
     private Vector3 startPosition;
 
     private SimpleInventory inventory;
-
+    private AchievementManager achievementManager;
     // Awake를 Start보다 위에 배치
     public void Awake()
     {
+        achievementManager = FindAnyObjectByType<AchievementManager>();
         questManager = FindFirstObjectByType<QuestManager>();
         inventory = FindFirstObjectByType<SimpleInventory>();
     }
@@ -58,7 +59,11 @@ public class PickupItem : MonoBehaviour
         {
             questManager.AddQuestItem(itemName, amount);
         }
-        
+        if (achievementManager != null)
+        {
+            achievementManager.ItemCollected(amount);
+        }
+
         Destroy(gameObject);
     }
 
